@@ -582,7 +582,7 @@ contains
 
   subroutine streampower(pyStack, pyRcv, pitID, pitVol1, pitDrain, pyXY, pyArea, pyMaxH, &
       pyMaxD, pyDischarge, pyFillH, pyElev, pyRiv, Cero, actlay, perc_dep, slp_cr, sea, dt, &
-      borders, pyDepo, pyEro, sedFluxes, pylNodesNb, pygNodesNb, pyRockNb)
+      borders, pyDepo, pyEro, sedFluxes, sed_luisa, pylNodesNb, pygNodesNb, pyRockNb)
 
       integer :: pylNodesNb
       integer :: pygNodesNb
@@ -611,18 +611,25 @@ contains
       real(kind=8),dimension(pygNodesNb,pyRockNb),intent(out) :: pyDepo
       real(kind=8),dimension(pygNodesNb,pyRockNb),intent(out) :: pyEro
       real(kind=8),dimension(pygNodesNb,pyRockNb),intent(out) :: sedFluxes
+      !real(kind=8),dimension(pygNodesNb),intent(out) :: pyDensity
 
+      real(kind=8),dimension(pygNodesNb,pyRockNb) :: sedFluxes2
       integer :: n, donor, recvr, nID, tmpID, r
       real(kind=8) :: maxh, dh, waterH, fct, Qt, totflx, totspl, newdist
       real(kind=8) :: dist, slp, slpdh, updh, tmpdist, totdist, width, frac, upperslp, bedfrac
-      real(kind=8),dimension(pyRockNb) :: SPL, Qs, Qb, frck, erodep, pitDep
+      real(kind=8),dimension(pyRockNb) :: SPL, Qs, Qb, frck, erodep, pitDep, sedaux
       real(kind=8),dimension(pygNodesNb) :: upZ, updist, pitVol
       real(kind=8),dimension(pygNodesNb,pyRockNb) :: bedFluxes
+      real(kind=8),dimension(pylNodesNb),intent(out) :: sed_luisa
+
+      sed_luisa = 0.
+      erodep=0.
 
       pyDepo = 0.
       pyEro = 0.
       pitVol = pitVol1
       sedFluxes = pyRiv * dt
+      sedFluxes2 = pyRiv * dt
       if(bedslptype > 0) bedFluxes = 0.
       upZ = 1.e6
       updist = 0.
@@ -1036,6 +1043,13 @@ contains
         ! For alluvial deposition
         upZ(recvr) = min(pyElev(donor),upZ(recvr))
         if(upZ(recvr)==pyElev(donor)) updist(recvr) = dist
+
+      do r = 1, pyRockNb
+        sedaux(r) = sedFluxes(donor,r)
+       enddo
+       do r = 1, pyRockNb
+        sed_luisa(n)=sed_luisa(n)+sedaux(r)
+       enddo
 
       enddo
 
