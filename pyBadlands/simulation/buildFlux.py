@@ -100,7 +100,7 @@ def streamflow(input, FVmesh, recGrid, force, hillslope, flow, elevation, \
     return fillH, elevation
 
 def sediment_flux(input, recGrid, hillslope, FVmesh, tMesh, flow, force, rain, lGIDs, applyDisp, straTIN, \
-                  mapero, cumdiff, cumhill, fillH, disp, inGIDs, elevation, tNow, tEnd, verbose=False):
+                  mapero, cumdiff, cumhill, fillH, disp, inGIDs, elevation, tNow, tEnd, solidflux, verbose=False):
     """
     Compute sediment fluxes.
     """
@@ -184,9 +184,9 @@ def sediment_flux(input, recGrid, hillslope, FVmesh, tMesh, flow, force, rain, l
 
     # Initial cumulative elevation change
     walltime = time.clock()
-    timestep, sedchange, erosion, deposition = flow.compute_sedflux(FVmesh.control_volumes, elevation, rain, fillH,
+    timestep, sedchange, erosion, deposition, solidflux = flow.compute_sedflux(FVmesh.control_volumes, elevation, rain, fillH,
                                           CFLtime, activelay, eroCk, force.rivQs, force.sealevel, input.perc_dep,
-                                          input.slp_cr, FVmesh.neighbours, verbose=False)
+                                          input.slp_cr, FVmesh.neighbours,solidflux, verbose=False)
 
     if rank == 0 and verbose:
         print " -   Get stream fluxes ", time.clock() - walltime
@@ -317,4 +317,4 @@ def sediment_flux(input, recGrid, hillslope, FVmesh, tMesh, flow, force, rain, l
     if rank == 0 and verbose:
         print " - Flow computation ", time.clock() - flow_time
 
-    return tNow,elevation,cumdiff,cumhill
+    return tNow,elevation,cumdiff,cumhill,solidflux

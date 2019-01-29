@@ -15,8 +15,9 @@ import numpy as np
 import mpi4py.MPI as mpi
 
 from pyBadlands import (visualiseFlow, visualiseTIN, eroMesh)
+from pyBadlands.libUtils import FLOWalgo
 
-def write_checkpoints(input, recGrid, lGIDs, inIDs, tNow, FVmesh, \
+def write_checkpoints(input,solidflux, recGrid, lGIDs, inIDs, tNow, FVmesh, \
                       tMesh, force, flow, rain, elevation, fillH, \
                       cumdiff, cumhill, wavediff, step, prop, \
                       mapero=None, cumflex=None):
@@ -89,6 +90,15 @@ def write_checkpoints(input, recGrid, lGIDs, inIDs, tNow, FVmesh, \
         meanS = None
         wdiff = None
 
+
+    cumdiff2, foo = FLOWalgo.flowcompute.discharge(force.sealevel, flow.localstack, flow.receivers,elevation, cumdiff)
+    solidflux2=solidflux
+ 
+
+
+
+    print 'solidflux max at checkpoints',max(solidflux)
+
     if input.flexure:
         visualiseTIN.write_hdf5_flexure(input.outDir, input.th5file, step, tMesh.node_coords[:,:2],
                                     elevation[lGIDs], rain[lGIDs], visdis[lGIDs], cumdiff[lGIDs],
@@ -105,11 +115,13 @@ def write_checkpoints(input, recGrid, lGIDs, inIDs, tNow, FVmesh, \
 
     if flow.sedload is not None:
         visualiseFlow.write_hdf5(input.outDir, input.fh5file, step, FVmesh.node_coords[flowIDs, :2], elevation[flowIDs],
-                                 visdis[flowIDs], flow.chi[flowIDs], flow.sedload[flowIDs], flow.basinID[flowIDs], polylines, rank)
+                                 visdis[flowIDs], flow.chi[flowIDs], flow.sedload[flowIDs], flow.basinID[flowIDs], polylines,solidflux[flowIDs], rank)
+    
     else:
+
         zeros = np.zeros(len(flowIDs),dtype=float)
         visualiseFlow.write_hdf5(input.outDir, input.fh5file, step, FVmesh.node_coords[flowIDs, :2], elevation[flowIDs],
-                                 visdis[flowIDs], flow.chi[flowIDs], zeros, flow.basinID[flowIDs], polylines, rank)
+                                 visdis[flowIDs], flow.chi[flowIDs], zeros, flow.basinID[flowIDs], polylines, solidflux[flowIDs], rank)
 
     # Combine HDF5 files and write time series
     if rank == 0:
