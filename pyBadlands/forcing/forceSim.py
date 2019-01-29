@@ -337,8 +337,9 @@ class forceSim:
             tinRain = self.rainVal[event]
             self.next_rain = self.T_rain[event,1]
         else:
-            rainMap = pandas.read_csv(str(self.Map_rain[event]), sep=r'\s+', engine='c',
-                               header=None, na_filter=False, dtype=numpy.float, low_memory=False)
+            rainMap = pandas.read_csv(str(self.Map_rain[event]), sep='\s+', engine='python')
+            #rainMap = pandas.read_csv(str(self.Map_rain[event]), sep=r'\s+', engine='c',
+            #                   header=None, na_filter=False, dtype=numpy.float, low_memory=False)
 
             rectRain = numpy.reshape(rainMap.values,(len(self.regX), len(self.regY)),order='F')
             tinRain = interpolate.interpn( (self.regX, self.regY), rectRain, self.tXY[inIDs,:], method='linear')
