@@ -255,6 +255,7 @@ class Model(object):
         outStrata = 0
         last_time = time.clock()
         last_output = time.clock()
+        solidflux = np.zeros((self.cumdiff.size,1))
 
         # Perform main simulation loop
         while self.tNow < tEnd:
@@ -441,7 +442,7 @@ class Model(object):
             if self.tNow >= self.force.next_display:
                 if self.force.next_display > self.input.tStart:
                     outStrata = 1
-                checkPoints.write_checkpoints(self.input, self.recGrid, self.lGIDs, self.inIDs, self.tNow,
+                checkPoints.write_checkpoints(self.input, solidflux, self.recGrid, self.lGIDs, self.inIDs, self.tNow,
                                             self.FVmesh, self.tMesh, self.force, self.flow, self.rain,
                                             self.elevation, self.fillH, self.cumdiff, self.cumhill, self.wavediff,
                                             self.outputStep, self.prop, self.mapero, self.cumflex)
@@ -480,9 +481,9 @@ class Model(object):
                         tEnd, self.force.next_wave, self.force.next_disp, self.force.next_rain,
                         self.force.next_carb])
 
-            self.tNow, self.elevation, self.cumdiff, self.cumhill = buildFlux.sediment_flux(self.input, self.recGrid, self.hillslope, \
+            self.tNow, self.elevation, self.cumdiff, self.cumhill, solidflux = buildFlux.sediment_flux(self.input, self.recGrid, self.hillslope, \
                               self.FVmesh, self.tMesh, self.flow, self.force, self.rain, self.lGIDs, self.applyDisp, self.straTIN, self.mapero,  \
-                              self.cumdiff, self.cumhill, self.fillH, self.disp, self.inGIDs, self.elevation, self.tNow, tStop, verbose)
+                              self.cumdiff, self.cumhill, self.fillH, self.disp, self.inGIDs, self.elevation, self.tNow, tStop, solidflux, verbose)
 
             # Update carbonate/pelagic stratigraphic layers
             # if self.carbTIN is not None:
@@ -522,7 +523,7 @@ class Model(object):
 
         # Create checkpoint files and write HDF5 output
         if self.input.udw == 0 or self.tNow == self.input.tEnd or self.tNow == self.force.next_display:
-            checkPoints.write_checkpoints(self.input, self.recGrid, self.lGIDs, self.inIDs, self.tNow, \
+            checkPoints.write_checkpoints(self.input, solidflux, self.recGrid, self.lGIDs, self.inIDs, self.tNow, \
                                 self.FVmesh, self.tMesh, self.force, self.flow, self.rain, \
                                 self.elevation, self.fillH, self.cumdiff, self.cumhill, self.wavediff, \
                                 self.outputStep, self.prop, self.mapero, self.cumflex)
