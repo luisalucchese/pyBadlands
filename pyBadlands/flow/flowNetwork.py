@@ -26,10 +26,13 @@ import xml.etree.ElementTree as ETO
 
 import os
 if 'READTHEDOCS' not in os.environ:
-    import pyBadlands.libUtils.sfd as sfd
-    from pyBadlands.libUtils import PDalgo
+    #import pyBadlands.libUtils.sfd as sfd
+    from pyBadlands.libUtils import sfd
+    #from pyBadlands.libUtils import PDalgo
     from pyBadlands.libUtils import FLOWalgo
+    #from pyBadlands.libUtils import PDalgo
     from pyBadlands.libUtils import FLWnetwork
+    from pyBadlands.libUtils import PDalgo
 
 class flowNetwork:
     """
@@ -442,6 +445,27 @@ class flowNetwork:
         self._comm.Allreduce(mpi.IN_PLACE, self.discharge, op=mpi.MAX)
         self._comm.Allreduce(mpi.IN_PLACE, self.activelay, op=mpi.MAX)
 
+    def compute_sedflux2(self, sealevel, elev, Acell, solidflux):
+        """
+        Calculates the drainage area and water discharge at each node.
+
+        Parameters
+        ----------
+        elev
+            Numpy arrays containing the elevation of the TIN nodes.
+
+        Acell
+            Numpy float-type array containing the voronoi area for each nodes (in m^2)
+
+        rain
+            Numpy float-type array containing the precipitation rate for each nodes (in m/a).
+        """
+
+        numPts = len(Acell)
+
+        # Compute discharge using libUtils
+        solidflux, foo = FLOWalgo.flowcompute.discharge(self.localstack, self.receivers,
+                                                        elev, solidflux)
 
     def view_receivers(self, fillH, elev, neighbours, edges, distances, globalIDs, sea):
         """
@@ -577,7 +601,7 @@ class flowNetwork:
             self.allDrain = -numpy.ones(len(pitID))
 
     def compute_sedflux(self, Acell, elev, rain, fillH, dt, actlay, rockCk, rivqs,
-        sealevel, perc_dep, slp_cr, ngbh, verbose=False):
+        sealevel, perc_dep, slp_cr, ngbh, solidflux, verbose=False):
         """
         Calculates the sediment flux at each node.
 
@@ -653,9 +677,10 @@ class flowNetwork:
             if actlay is None:
                 actlay = numpy.zeros((len(elev),1))
 
-            cdepo, cero, sedload = FLOWalgo.flowcompute.streampower(self.localstack,self.receivers,self.pitID, \
+            cdepo, cero, sedload, solidflux = FLOWalgo.flowcompute.streampower(self.localstack,self.receivers,self.pitID, \
                      self.pitVolume,self.pitDrain,self.xycoords,Acell,self.maxh,self.maxdep,self.discharge,fillH, \
                      elev,rivqs,eroCoeff,actlay,perc_dep,slp_cr,sealevel,newdt,self.borders)
+            solidflux, foo = FLOWalgo.flowcompute.discharge(self.localstack, self.receivers,elev, (solidflux))
             comm.Allreduce(mpi.IN_PLACE,cdepo,op=mpi.MAX)
             comm.Allreduce(mpi.IN_PLACE,cero,op=mpi.MIN)
 
@@ -693,7 +718,7 @@ class flowNetwork:
                 time1 = time.clock()
 
             if newdt < dt:
-                cdepo, cero, sedload = FLOWalgo.flowcompute.streampower(self.localstack,self.receivers,self.pitID, \
+                cdepo, cero, sedload,solidflux = FLOWalgo.flowcompute.streampower(self.localstack,self.receivers,self.pitID, \
                         self.pitVolume,self.pitDrain,self.xycoords,Acell,self.maxh,self.maxdep,self.discharge,fillH, \
                         elev,rivqs,eroCoeff,actlay,perc_dep,slp_cr,sealevel,newdt,self.borders)
                 comm.Allreduce(mpi.IN_PLACE,cdepo,op=mpi.MAX)
@@ -790,7 +815,7 @@ class flowNetwork:
             if rank==0 and verbose:
                 print "   - Total sediment flux time ", time.clock() - time0
 
-        return newdt,sedflux,erosion,deposition
+        return newdt,sedflux,erosion,deposition,solidflux
 
     def gaussian_diffusion(self, diff, dsmooth):
         """
